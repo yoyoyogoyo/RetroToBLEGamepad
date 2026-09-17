@@ -17,31 +17,62 @@ Firmware that converts retro console controllers into a Bluetooth LE HID gamepad
 - Cables/crimp connecters/solder to connect wires to board
 
 ---
+## Setup instructions
+
+- 1\. Install Arduino IDE and the ESP32 board package (by Espressif, I used v2.0.7).
+- 2\. Install \*\*"ESP32 BLE Gamepad"\*\* by lemmingDev via the Arduino Library Manager. (I used v 0.5.4)
+- 3\. Open `RetroToBLEGamepad.ino`, select your ESP32 board, and upload.
+- 4\. Connect the controller port pins to the relevant ESP32 GPIO pins outlined below.
+- 4\. Pair the ESP32 ("MegaDrive Pad") from your target device's Bluetooth settings.
+
+---
 ## Wiring Guide
-### DB9 Port (Mega Drive / Genesis / Master System / Atari / C64)
+### Mega Drive / Genesis / Master System / Atari / C64
+DB9 Controller Port (Front View / Female Socket)
+_______________________
+ \  1   2   3   4   5  /
+  \   6   7   8   9   /
+   \_________________/
 
-| DB9 Pin | Signal        | ESP32 GPIO |
-|--------:|---------------|:----------:|
-| 1       | Up            | 32         |
-| 2       | Down          | 33         |
-| 3       | Left          | 25         |
-| 4       | Right         | 26         |
-| 5       | +5V           | **3V3**    |
-| 6       | Data0 (TL)    | 27         |
-| 7       | Select (TH)   | 13         |
-| 8       | GND           | GND        |
-| 9       | Data1 (TR)    | 14         |
+Pin 1: Up           -> GPIO 32
+Pin 2: Down         -> GPIO 33
+Pin 3: Left         -> GPIO 25
+Pin 4: Right        -> GPIO 26
+Pin 5: +5V          -> ESP32 3V3 (NOT 5V!)
+Pin 6: Data0 / Fire -> GPIO 27
+Pin 7: Select / TH  -> GPIO 13
+Pin 8: GND          -> GND
+Pin 9: Data1 / TR   -> GPIO 14
 
-### SNES/NES Controller Port
-| Signal | ESP32 GPIO |
-|:-------|:----------:|
-| Latch  | 18         |
-| Clock  | 19         |
-| Data   | 21         |
-| +5V    | **3V3**    |
-| GND    | GND        |
+### SNES/NES
+#### SNES Controller Port (Front View / Console Socket)
++-----------------------------------+
+ |  (1)  (2)  (3)  (4)  (5)  (6)  (7) |
++-----------------------------------+
+[ Round Side ]            [ Flat Side ]
 
-⚠️ **Important: Power controllers from the ESP32's 3.3V pin, not 5V. ESP32 GPIOs are not 5V tolerant, and retro pads run reliably at 3.3V logic levels.
+Pin 1: +5V   -> ESP32 3V3 (NOT 5V!)
+Pin 2: Clock -> GPIO 19
+Pin 3: Latch -> GPIO 18
+Pin 4: Data  -> GPIO 21
+Pin 5: N/C   -> (Unused)
+Pin 6: N/C   -> (Unused)
+Pin 7: GND   -> GND
+
+#### NES Controller Port (Front View / Console Socket)
++-----------------------+
+ |  (1)  (2)  (3)  (4)   |
+ |                       |  [ Flat Side ]
+ |     (5)   (6)   (7)   |
+ +-----------------------+
+
+Pin 1: GND   -> GND
+Pin 2: Clock -> GPIO 19
+Pin 3: Latch -> GPIO 18
+Pin 4: Data  -> GPIO 21
+Pin 5: +5V   -> ESP32 3V3 (NOT 5V!)
+Pin 6: N/C   -> (Unused)
+Pin 7: N/C   -> (Unused)
 
 ---
 ## Button Mapping
@@ -60,14 +91,4 @@ Inputs from connected controllers are merged together, allowing controllers to b
 | \*\*MD Z\*\* / \*\*SNES R\*\* | Button 7 |
 | \* \*\*SNES Select\*\* | Button 8 |
 ---
-
-## Software Setup
-
-- 1\. Install Arduino IDE and the ESP32 board package (by Espressif, I used v2.0.7).
-- 2\. Install \*\*"ESP32 BLE Gamepad"\*\* by lemmingDev via the Arduino Library Manager. (I used v 0.5.4)
-- 3\. Open `RetroToBLEGamepad.ino`, select your ESP32 board, and upload.
-- 4\. Connect the controller port pins to the relevant ESP32 GPIO pins outlined above.
-- 4\. Pair the ESP32 ("MegaDrive Pad") from your target device's Bluetooth settings.
-
-
 
