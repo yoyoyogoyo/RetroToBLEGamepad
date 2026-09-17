@@ -1,6 +1,6 @@
 # Retro console controller → BLE gamepad
 
-Firmware that converts retro console controllers into a Bluetooth LE HID gamepad for your PC, phone, or other device, using an ESP32.
+Firmware that converts retro console controllers into a Bluetooth gamepad for your PC, phone, or other device, using an ESP32.
 ---
 
 ## Supported Controllers \& Compatibility
