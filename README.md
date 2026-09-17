@@ -29,11 +29,12 @@ Firmware that converts retro console controllers into a Bluetooth LE HID gamepad
 ## Wiring Guide
 ### Mega Drive / Genesis / Master System / Atari / C64
 DB9 Controller Port (Front View / Female Socket)
-\_______________________
+```text
+_______________________
  \\  1   2   3   4   5  /
  \\   6   7   8   9   /
   \ \_________________/
-
+```
 Pin 1: Up           -> GPIO 32
 Pin 2: Down         -> GPIO 33
 Pin 3: Left         -> GPIO 25
@@ -46,11 +47,12 @@ Pin 9: Data1 / TR   -> GPIO 14
 
 ### SNES/NES
 #### SNES Controller Port (Front View / Console Socket)
+```text
 +-----------------------------------+
  |  (1)  (2)  (3)  (4)  (5)  (6)  (7) |
 +-----------------------------------+
 [ Round Side ]            [ Flat Side ]
-
+```
 Pin 1: +5V   -> ESP32 3V3 (NOT 5V!)
 Pin 2: Clock -> GPIO 19
 Pin 3: Latch -> GPIO 18
@@ -60,12 +62,13 @@ Pin 6: N/C   -> (Unused)
 Pin 7: GND   -> GND
 
 #### NES Controller Port (Front View / Console Socket)
+```text
 +-----------------------+
  |  (1)  (2)  (3)  (4)   |
  |                       |  [ Flat Side ]
  |     (5)   (6)   (7)   |
  +-----------------------+
-
+```
 Pin 1: GND   -> GND
 Pin 2: Clock -> GPIO 19
 Pin 3: Latch -> GPIO 18
