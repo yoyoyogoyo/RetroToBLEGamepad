@@ -1,0 +1,373 @@
+/*
+ * Sega Mega Drive / Genesis Controller -> BLE HID Gamepad
+ * for ESP32
+ *
+ * Reads a stock 3-button or 6-button Mega Drive/Genesis controller
+ * and re-broadcasts it as a Bluetooth LE HID gamepad.
+ *
+ * LIBRARY REQUIRED (install via Arduino Library Manager):
+ *   "ESP32 BLE Gamepad" by lemmingDev
+ *   (this pulls in NimBLE-Arduino automatically as a dependency)
+ *
+ * WIRING (ESP32 GPIO <-> Mega Drive DB9 pin):
+ *   Pin 1 (Up)     -> GPIO 32
+ *   Pin 2 (Down)   -> GPIO 33
+ *   Pin 3 (Left)   -> GPIO 25
+ *   Pin 4 (Right)  -> GPIO 26
+ *   Pin 5 (+5V)    -> ESP32 3V3  (NOT 5V! ESP32 GPIOs are not 5V
+ *                                 tolerant. Genesis pads run fine on 3.3V.)
+ *   Pin 6 (Data0/TL) -> GPIO 27
+ *   Pin 7 (Select/TH)-> GPIO 13   (this one is an OUTPUT from the ESP32)
+ *   Pin 8 (GND)    -> GND
+ *   Pin 9 (Data1/TR) -> GPIO 14
+ *
+ * WIRING - SNES:
+ *   Latch -> GPIO 18  (OUTPUT)
+ *   Clock -> GPIO 19  (OUTPUT)
+ *   Data  -> GPIO 21  (INPUT)
+ *   +5V   -> ESP32 3V3 (not 5V, same reasoning as above)
+ *   GND   -> GND
+ *
+ * MD <-> SNES button mapping (SNES button that ORs into each MD button):
+ *   MD a     <- SNES b
+ *   MD b     <- SNES a
+ *   MD c     <- SNES l
+ *   MD x     <- SNES y
+ *   MD y     <- SNES x
+ *   MD z     <- SNES r
+ *   MD start <- SNES start
+ *   MD mode  <- SNES select
+ *
+ * All the controller's input lines are wired with the ESP32's internal
+ * pull-ups enabled. The controller is essentially open-collector: it
+ * pulls a line LOW when a button/direction is active, so reads are
+ * inverted in software (see readPinActive()).
+ *
+ * Feel free to remap the GPIOs below to whatever's convenient for your
+ * board/enclosure -- just avoid strapping pins (0, 2, 12, 15) and
+ * input-only pins (34-39, which can't have pull-ups and can't drive
+ * SELECT anyway).
+ */
+
+#include <BleGamepad.h>
+
+// ---- Pin assignment (change to suit your wiring) ----
+static const int PIN_UP     = 32;
+static const int PIN_DOWN   = 33;
+static const int PIN_LEFT   = 25;
+static const int PIN_RIGHT  = 26;
+static const int PIN_DATA0  = 27; // DB9 pin 6
+static const int PIN_SELECT = 13; // DB9 pin 7 (TH), driven by us
+static const int PIN_DATA1  = 14; // DB9 pin 9
+
+// ---- SNES Pin Assignment ----
+static const int PIN_SNES_LATCH = 18; // Output
+static const int PIN_SNES_CLOCK = 19; // Output
+static const int PIN_SNES_DATA  = 21; // Input
+
+// Timing for the SNES shift-register read.
+static const int SNES_LATCH_US = 12;
+static const int SNES_CLOCK_US = 6;
+
+// Set true to print raw pin states + decoded buttons over Serial every
+// DEBUG_INTERVAL_MS. Runs regardless of BLE connection state, so you can
+// see what the ESP32 thinks the controller is doing even before pairing.
+static const bool DEBUG_SERIAL = true;
+static const unsigned long DEBUG_INTERVAL_MS = 200;
+
+// Settle time between toggling SELECT and sampling the data lines.
+// Real consoles use only a few microseconds; 20us gives plenty of
+// margin without slowing the poll loop down noticeably.
+static const int SETTLE_US = 20;
+
+// How often to poll the pad and send a BLE HID report.
+static const int POLL_INTERVAL_MS = 6; // ~250Hz
+
+BleGamepad bleGamepad("MegaDrive Pad", "DIY", 100);
+
+struct MDState {
+  bool up = false, down = false, left = false, right = false;
+  bool a = false, b = false, c = false, start = false;
+  bool x = false, y = false, z = false, mode = false;
+  bool sixButton = false;
+};
+
+// SNES state
+struct SNESState {
+  bool up = false, down = false, left = false, right = false;
+  bool a = false, b = false, x = false, y = false;
+  bool l = false, r = false, start = false, select = false;
+};
+bool lastSnesBits[16];
+
+static inline bool readPinActive(int pin) {
+  return digitalRead(pin) == LOW; // controller pulls lines low when active
+}
+
+struct RawSnapshot {
+  int up, down, left, right, data0, data1;   // idle-state raw reads
+  int id_up, id_down;                        // pulse3 LOW: 6-button ID check
+  int xyz_up, xyz_down, xyz_left, xyz_right;  // pulse3 HIGH: Z/Y/X/Mode data
+};
+RawSnapshot lastRaw;
+
+MDState readControllerAuto() {
+  MDState s;
+
+  // Step 1: Read idle state (TH = HIGH)
+  digitalWrite(PIN_SELECT, HIGH);
+  delayMicroseconds(SETTLE_US);
+  int idleUp    = digitalRead(PIN_UP);
+  int idleDown  = digitalRead(PIN_DOWN);
+  int idleLeft  = digitalRead(PIN_LEFT);
+  int idleRight = digitalRead(PIN_RIGHT);
+  int idleD0    = digitalRead(PIN_DATA0); // MD: B | SMS/Atari: Button 1 (Fire)
+  int idleD1    = digitalRead(PIN_DATA1); // MD: C | SMS: Button 2
+
+  // Step 2: Set TH = LOW to test for multiplexer
+  digitalWrite(PIN_SELECT, LOW);
+  delayMicroseconds(SETTLE_US);
+  int pulse1Left  = digitalRead(PIN_LEFT);
+  int pulse1Right = digitalRead(PIN_RIGHT);
+  int pulse1D0    = digitalRead(PIN_DATA0); // MD: A
+  int pulse1D1    = digitalRead(PIN_DATA1); // MD: Start
+
+  // Hardware signature check: MD pads force BOTH Left & Right LOW when TH is LOW
+  bool isMegaDrive = (pulse1Left == LOW && pulse1Right == LOW);
+
+  if (!isMegaDrive) {
+    // --- PASSIVE MODE (Atari 2600 / SMS / C64) ---
+    digitalWrite(PIN_SELECT, HIGH);
+    s.up    = idleUp == LOW;
+    s.down  = idleDown == LOW;
+    s.left  = idleLeft == LOW;
+    s.right = idleRight == LOW;
+    s.a     = idleD0 == LOW; // Button 1 / Fire
+    s.b     = idleD1 == LOW; // Button 2
+    return s;
+  }
+
+  // --- MEGA DRIVE MODE (3-Button or 6-Button) ---
+  s.up    = idleUp == LOW;
+  s.down  = idleDown == LOW;
+  s.left  = idleLeft == LOW;
+  s.right = idleRight == LOW;
+  s.b     = idleD0 == LOW;
+  s.c     = idleD1 == LOW;
+  s.a     = pulse1D0 == LOW;
+  s.start = pulse1D1 == LOW;
+
+  // Pulse 1 HIGH
+  digitalWrite(PIN_SELECT, HIGH);
+  delayMicroseconds(SETTLE_US);
+
+  // Pulse 2 LOW then HIGH
+  digitalWrite(PIN_SELECT, LOW);
+  delayMicroseconds(SETTLE_US);
+  digitalWrite(PIN_SELECT, HIGH);
+  delayMicroseconds(SETTLE_US);
+
+  // Pulse 3 LOW: Check 6-button ID (Up & Down forced LOW)
+  digitalWrite(PIN_SELECT, LOW);
+  delayMicroseconds(SETTLE_US);
+  bool sixButtonID = (digitalRead(PIN_UP) == LOW && digitalRead(PIN_DOWN) == LOW);
+
+  // Pulse 3 HIGH: Read XYZ / Mode
+  digitalWrite(PIN_SELECT, HIGH);
+  delayMicroseconds(SETTLE_US);
+  if (sixButtonID) {
+    s.sixButton = true;
+    s.z    = readPinActive(PIN_UP);
+    s.y    = readPinActive(PIN_DOWN);
+    s.x    = readPinActive(PIN_LEFT);
+    s.mode = readPinActive(PIN_RIGHT);
+  }
+
+  // Pulse 4 LOW then HIGH: Reset multiplexer state
+  digitalWrite(PIN_SELECT, LOW);
+  delayMicroseconds(SETTLE_US);
+  digitalWrite(PIN_SELECT, HIGH);
+  delayMicroseconds(SETTLE_US);
+
+  return s;
+}
+
+// ---------------------------------------------------------------------
+// SNES
+// ---------------------------------------------------------------------
+
+SNESState readSNES() {
+  SNESState s;
+
+  digitalWrite(PIN_SNES_LATCH, HIGH);
+  delayMicroseconds(SNES_LATCH_US);
+  digitalWrite(PIN_SNES_LATCH, LOW);
+
+  for (int i = 0; i < 16; i++) {
+    lastSnesBits[i] = (digitalRead(PIN_SNES_DATA) == LOW); // active low
+    digitalWrite(PIN_SNES_CLOCK, HIGH);
+    delayMicroseconds(SNES_CLOCK_US);
+    digitalWrite(PIN_SNES_CLOCK, LOW);
+    delayMicroseconds(SNES_CLOCK_US);
+  }
+
+  s.b      = lastSnesBits[0];
+  s.y      = lastSnesBits[1];
+  s.select = lastSnesBits[2];
+  s.start  = lastSnesBits[3];
+  s.up     = lastSnesBits[4];
+  s.down   = lastSnesBits[5];
+  s.left   = lastSnesBits[6];
+  s.right  = lastSnesBits[7];
+  s.a      = lastSnesBits[8];
+  s.x      = lastSnesBits[9];
+  s.l      = lastSnesBits[10];
+  s.r      = lastSnesBits[11];
+
+  return s;
+}
+
+// ---------------------------------------------------------------------
+// Combine the MD/Atari/SMS state with the SNES state into one logical
+// button state:
+//
+// MD button <- SNES button:
+//   a     <- b        c     <- l        start <- start
+//   b     <- a        x     <- y        mode  <- select
+//                     y     <- x
+//                     z     <- r
+// ---------------------------------------------------------------------
+
+MDState combineStates(const MDState &md, const SNESState &sn) {
+  MDState c = md; // start from MD/Atari state, OR in SNES on top
+
+  c.up    = md.up    || sn.up;
+  c.down  = md.down  || sn.down;
+  c.left  = md.left  || sn.left;
+  c.right = md.right || sn.right;
+  c.start = md.start || sn.start;
+
+  c.a    = md.a    || sn.b;
+  c.b    = md.b    || sn.a;
+  c.c    = md.c    || sn.l;
+  c.x    = md.x    || sn.y;
+  c.y    = md.y    || sn.x;
+  c.z    = md.z    || sn.r;
+  c.mode = md.mode || sn.select; // SNES Select maps to MD Mode (BUTTON_8)
+
+  return c;
+}
+
+void setup() {
+  if (DEBUG_SERIAL) {
+    Serial.begin(115200);
+    delay(500);
+    Serial.println();
+    Serial.println("Mega Drive / SNES BLE Gamepad - debug mode");
+    Serial.println();
+  }
+
+  pinMode(PIN_UP, INPUT_PULLUP);
+  pinMode(PIN_DOWN, INPUT_PULLUP);
+  pinMode(PIN_LEFT, INPUT_PULLUP);
+  pinMode(PIN_RIGHT, INPUT_PULLUP);
+  pinMode(PIN_DATA0, INPUT_PULLUP);
+  pinMode(PIN_DATA1, INPUT_PULLUP);
+  pinMode(PIN_SELECT, OUTPUT);
+  digitalWrite(PIN_SELECT, HIGH);
+
+  pinMode(PIN_SNES_LATCH, OUTPUT);
+  pinMode(PIN_SNES_CLOCK, OUTPUT);
+  pinMode(PIN_SNES_DATA, INPUT_PULLUP);
+  digitalWrite(PIN_SNES_LATCH, LOW);
+  digitalWrite(PIN_SNES_CLOCK, LOW);
+
+  BleGamepadConfiguration config;
+  config.setAutoReport(false);
+  config.setControllerType(CONTROLLER_TYPE_GAMEPAD);
+  config.setButtonCount(8);
+  config.setHatSwitchCount(1);
+  config.setIncludeXAxis(false);
+  config.setIncludeYAxis(false);
+  config.setIncludeZAxis(false);
+  config.setIncludeRxAxis(false);
+  config.setIncludeRyAxis(false);
+  config.setIncludeRzAxis(false);
+  config.setIncludeSlider1(false);
+  config.setIncludeSlider2(false);
+
+  bleGamepad.begin(&config);
+}
+
+unsigned long lastDebugPrint = 0;
+
+void printDebug(const MDState &s, bool connected) {
+  Serial.print("conn=");
+  Serial.print(connected ? "Y" : "N");
+  Serial.print("  RAW(up,down,left,right,d0,d1)=");
+  Serial.print(lastRaw.up);   Serial.print(",");
+  Serial.print(lastRaw.down); Serial.print(",");
+  Serial.print(lastRaw.left); Serial.print(",");
+  Serial.print(lastRaw.right);Serial.print(",");
+  Serial.print(lastRaw.data0);Serial.print(",");
+  Serial.print(lastRaw.data1);
+
+  Serial.print("  | btn: ");
+  if (s.up) Serial.print("UP ");
+  if (s.down) Serial.print("DOWN ");
+  if (s.left) Serial.print("LEFT ");
+  if (s.right) Serial.print("RIGHT ");
+  if (s.a) Serial.print("A ");
+  if (s.b) Serial.print("B ");
+  if (s.c) Serial.print("C ");
+  if (s.start) Serial.print("START ");
+  if (s.x) Serial.print("X ");
+  if (s.y) Serial.print("Y ");
+  if (s.z) Serial.print("Z ");
+  if (s.mode) Serial.print("MODE/SELECT ");
+
+  Serial.println();
+}
+
+void loop() {
+  MDState md = readControllerAuto();
+  SNESState sn = readSNES();
+  MDState s = combineStates(md, sn);
+  bool connected = bleGamepad.isConnected();
+
+  if (connected) {
+    // D-pad mapping
+    uint8_t hat = DPAD_CENTERED;
+    if (s.up && s.right) hat = DPAD_UP_RIGHT;
+    else if (s.down && s.right) hat = DPAD_DOWN_RIGHT;
+    else if (s.down && s.left) hat = DPAD_DOWN_LEFT;
+    else if (s.up && s.left) hat = DPAD_UP_LEFT;
+    else if (s.up) hat = DPAD_UP;
+    else if (s.down) hat = DPAD_DOWN;
+    else if (s.left) hat = DPAD_LEFT;
+    else if (s.right) hat = DPAD_RIGHT;
+    bleGamepad.setHat1(hat);
+
+    // Button mapping
+    s.a     ? bleGamepad.press(BUTTON_1) : bleGamepad.release(BUTTON_1);
+    s.b     ? bleGamepad.press(BUTTON_2) : bleGamepad.release(BUTTON_2);
+    s.c     ? bleGamepad.press(BUTTON_3) : bleGamepad.release(BUTTON_3);
+    s.start ? bleGamepad.press(BUTTON_4) : bleGamepad.release(BUTTON_4);
+    s.x     ? bleGamepad.press(BUTTON_5) : bleGamepad.release(BUTTON_5);
+    s.y     ? bleGamepad.press(BUTTON_6) : bleGamepad.release(BUTTON_6);
+    s.z     ? bleGamepad.press(BUTTON_7) : bleGamepad.release(BUTTON_7);
+    s.mode  ? bleGamepad.press(BUTTON_8) : bleGamepad.release(BUTTON_8);
+
+    bleGamepad.sendReport();
+  }
+
+  if (DEBUG_SERIAL) {
+    unsigned long now = millis();
+    if (now - lastDebugPrint >= DEBUG_INTERVAL_MS) {
+      lastDebugPrint = now;
+      printDebug(s, connected);
+    }
+  }
+
+  delay(POLL_INTERVAL_MS);
+}
