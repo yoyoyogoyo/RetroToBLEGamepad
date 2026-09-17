@@ -29,10 +29,10 @@ Firmware that converts retro console controllers into a Bluetooth LE HID gamepad
 ## Wiring Guide
 ### Mega Drive / Genesis / Master System / Atari / C64
 DB9 Controller Port (Front View / Female Socket)
-/_______________________
- /\  1   2   3   4   5  /
- /\   6   7   8   9   /
-   \_________________/
+\_______________________
+ \\  1   2   3   4   5  /
+ \\   6   7   8   9   /
+  \ \_________________/
 
 Pin 1: Up           -> GPIO 32
 Pin 2: Down         -> GPIO 33
