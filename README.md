@@ -6,10 +6,6 @@ Firmware that lets an ESP32 convert retro console controllers into a Bluetooth L
 
 
 
-Supports \*\*Sega Mega Drive / Genesis\*\* (3-button \& 6-button), \*\*Super Nintendo (SNES)\*\*, and passive DB9 controllers including \*\*Atari 2600\*\*, \*\*Sega Master System\*\*, and other Atari-spec DB9 joysticks (e.g. Commodore 64).
-
-
-
 \---
 
 
