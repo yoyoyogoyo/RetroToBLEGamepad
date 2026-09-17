@@ -37,25 +37,15 @@ Firmware that lets an ESP32 convert retro console controllers into a Bluetooth L
 
 
 | DB9 Pin | Signal        | ESP32 GPIO | Notes |
-
 |--------:|---------------|:----------:|:------|
-
 | 1       | Up            | 32         |       |
-
 | 2       | Down          | 33         |       |
-
 | 3       | Left          | 25         |       |
-
 | 4       | Right         | 26         |       |
-
-| 5       | +5V           | \*\*3V3\*\*    | \*\*Use 3.3V, NOT 5V!\*\* |
-
-| 6       | Data0 (TL)    | 27         | MD: B / SMS \& Atari: Button 1 (Fire) |
-
+| 5       | +5V           | **3V3**    | **Use 3.3V, NOT 5V!** |
+| 6       | Data0 (TL)    | 27         | MD: B / SMS & Atari: Button 1 (Fire) |
 | 7       | Select (TH)   | 13         | Output (TH multiplexer driver) |
-
 | 8       | GND           | GND        |       |
-
 | 9       | Data1 (TR)    | 14         | MD: C / SMS: Button 2 |
 
 
@@ -63,19 +53,12 @@ Firmware that lets an ESP32 convert retro console controllers into a Bluetooth L
 \### SNES Controller Port
 
 
-
 | Signal | ESP32 GPIO | Direction |
-
 |:-------|:----------:|:---------:|
-
 | Latch  | 18         | Output    |
-
 | Clock  | 19         | Output    |
-
 | Data   | 21         | Input     |
-
-| +5V    | \*\*3V3\*\*    | Power     |
-
+| +5V    | **3V3**    | Power     |
 | GND    | GND        | Ground    |
 
 
