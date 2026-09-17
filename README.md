@@ -46,7 +46,7 @@ Firmware that converts retro console controllers into a Bluetooth LE HID gamepad
 ---
 ## Button Mapping
 
-Inputs from connected controllers are merged together, allowing controllers to be plugged in simultaneously. So you can have two of your original controllers connected, then just choose the one that you want for a given game. 
+Inputs from connected controllers are merged together, allowing controllers to be plugged in simultaneously. So you can have two of your original controllers connected (one MD/SMS/Atari or C64, and one SNES or NES), then just choose the one that you want for a given game. 
 
 | Controller Button | BLE Gamepad Output |
 |:------------------|:-------------------|
