@@ -34,7 +34,7 @@ _______________________
  \\  1   2   3   4   5  /
  \\   6   7   8   9   /
   \ \_________________/
-```
+
 Pin 1: Up           -> GPIO 32
 Pin 2: Down         -> GPIO 33
 Pin 3: Left         -> GPIO 25
@@ -44,7 +44,7 @@ Pin 6: Data0 / Fire -> GPIO 27
 Pin 7: Select / TH  -> GPIO 13
 Pin 8: GND          -> GND
 Pin 9: Data1 / TR   -> GPIO 14
-
+```
 ### SNES/NES
 #### SNES Controller Port (Front View / Console Socket)
 ```text
@@ -52,7 +52,7 @@ Pin 9: Data1 / TR   -> GPIO 14
  |  (1)  (2)  (3)  (4)  (5)  (6)  (7) |
 +-----------------------------------+
 [ Round Side ]            [ Flat Side ]
-```
+
 Pin 1: +5V   -> ESP32 3V3 (NOT 5V!)
 Pin 2: Clock -> GPIO 19
 Pin 3: Latch -> GPIO 18
@@ -60,7 +60,7 @@ Pin 4: Data  -> GPIO 21
 Pin 5: N/C   -> (Unused)
 Pin 6: N/C   -> (Unused)
 Pin 7: GND   -> GND
-
+```
 #### NES Controller Port (Front View / Console Socket)
 ```text
 +-----------------------+
@@ -68,7 +68,7 @@ Pin 7: GND   -> GND
  |                       |  [ Flat Side ]
  |     (5)   (6)   (7)   |
  +-----------------------+
-```
+
 Pin 1: GND   -> GND
 Pin 2: Clock -> GPIO 19
 Pin 3: Latch -> GPIO 18
@@ -76,7 +76,7 @@ Pin 4: Data  -> GPIO 21
 Pin 5: +5V   -> ESP32 3V3 (NOT 5V!)
 Pin 6: N/C   -> (Unused)
 Pin 7: N/C   -> (Unused)
-
+```
 ---
 ## Button Mapping
 
