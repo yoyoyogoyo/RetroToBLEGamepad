@@ -5,11 +5,8 @@ Firmware that converts retro console controllers into a Bluetooth LE HID gamepad
 
 ## Supported Controllers \& Compatibility
 - \*\*Sega Mega Drive / Genesis\*\*: 3-button and 6-button controllers.
-
 - \*\*Super Nintendo (SNES)\*\*: Standard SNES controllers.
-
 - \*\*Sega Master System \& Atari 2600\*\*: Supported via the DB9 port
-
 - \*\*Commodore 64 \& other Atari-standard DB9 joysticks\*\*: Structurally identical to Atari 2600/SMS pinouts, so they should work, though they have not been specifically tested.
 
 ## Hardware needed
@@ -61,7 +58,6 @@ Inputs from connected controllers are merged together, allowing controllers to b
 | \*\*MD Y\*\* / \*\*SNES X\*\* | Button 6 |
 | \*\*MD Z\*\* / \*\*SNES R\*\* | Button 7 |
 | \* \*\*SNES Select\*\* | Button 8 |
-
 ---
 
 ## Software Setup
