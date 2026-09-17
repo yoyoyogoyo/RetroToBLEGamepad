@@ -62,10 +62,10 @@ Inputs from connected controllers are merged together, allowing controllers to b
 
 ## Software Setup
 
-1\. Install Arduino IDE and the ESP32 board package (by Espressif, I used v2.0.7).
-2\. Install \*\*"ESP32 BLE Gamepad"\*\* by lemmingDev via the Arduino Library Manager. (I used v 0.5.4)
-3\. Open `RetroToBLEGamepad.ino`, select your ESP32 board, and upload.
-4\. Pair the ESP32 ("MegaDrive Pad") from your target device's Bluetooth settings.
+-1\. Install Arduino IDE and the ESP32 board package (by Espressif, I used v2.0.7).
+-2\. Install \*\*"ESP32 BLE Gamepad"\*\* by lemmingDev via the Arduino Library Manager. (I used v 0.5.4)
+-3\. Open `RetroToBLEGamepad.ino`, select your ESP32 board, and upload.
+-4\. Pair the ESP32 ("MegaDrive Pad") from your target device's Bluetooth settings.
 
 
 
