@@ -1,18 +1,19 @@
-# Retro Console Controller → BLE Gamepad
+# Retro console controller → BLE gamepad
 
 Firmware that converts retro console controllers into a Bluetooth LE HID gamepad for your PC, phone, or other device, using an ESP32.
 ---
 
 ## Supported Controllers \& Compatibility
 - \*\*Sega Mega Drive / Genesis\*\*: 3-button and 6-button controllers.
-- \*\*Super Nintendo (SNES)\*\*: Standard SNES controllers.
+- \*\*Super Nintendo (SNES)\*\*: Standard SNES controllers. 
 - \*\*Sega Master System \& Atari 2600\*\*: Supported via the DB9 port
 - \*\*Commodore 64 \& other Atari-standard DB9 joysticks\*\*: Structurally identical to Atari 2600/SMS pinouts, so they should work, though they have not been specifically tested.
+- \*\*Nintendo Entertainment System (NES)\*\*: Should work using the SNES pins, but hasn't been tested.
 
 ## Hardware needed
 - ESP32 Development board (I used a 30 pin)
 - for Sega, Atari: a DB9 port or cut extension cable
-- for SNES: a SNES controller port or cut extension cable.
+- for SNES or NES: a SNES/NES controller port or cut extension cable.
 - Cables/crimp connecters/solder to connect wires to board
 
 ---
@@ -31,7 +32,7 @@ Firmware that converts retro console controllers into a Bluetooth LE HID gamepad
 | 8       | GND           | GND        |
 | 9       | Data1 (TR)    | 14         |
 
-### SNES Controller Port
+### SNES/NES Controller Port
 | Signal | ESP32 GPIO |
 |:-------|:----------:|
 | Latch  | 18         |
@@ -45,7 +46,7 @@ Firmware that converts retro console controllers into a Bluetooth LE HID gamepad
 ---
 ## Button Mapping
 
-Inputs from connected controllers are merged together, allowing controllers to be plugged in simultaneously. So you can have several of your original controllers connected, then just choose the one that you want for a given game. 
+Inputs from connected controllers are merged together, allowing controllers to be plugged in simultaneously. So you can have two of your original controllers connected, then just choose the one that you want for a given game. 
 
 | Controller Button | BLE Gamepad Output |
 |:------------------|:-------------------|
@@ -65,6 +66,7 @@ Inputs from connected controllers are merged together, allowing controllers to b
 - 1\. Install Arduino IDE and the ESP32 board package (by Espressif, I used v2.0.7).
 - 2\. Install \*\*"ESP32 BLE Gamepad"\*\* by lemmingDev via the Arduino Library Manager. (I used v 0.5.4)
 - 3\. Open `RetroToBLEGamepad.ino`, select your ESP32 board, and upload.
+- 4\. Connect the controller port pins to the relevant ESP32 GPIO pins outlined above.
 - 4\. Pair the ESP32 ("MegaDrive Pad") from your target device's Bluetooth settings.
 
 
