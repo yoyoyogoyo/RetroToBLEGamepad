@@ -40,7 +40,7 @@ Firmware that converts retro console controllers into a Bluetooth LE HID gamepad
 | +5V    | **3V3**    |
 | GND    | GND        |
 
-\\\\\\\*\\\\\\\*⚠️ Important:\\\\\\\*\\\\\\\* Power controllers from the ESP32's \\\\\\\*\\\\\\\*3.3V\\\\\\\*\\\\\\\* pin, not 5V. ESP32 GPIOs are not 5V tolerant, and retro pads run reliably at 3.3V logic levels.
+⚠️ **Important: Power controllers from the ESP32's 3.3V pin, not 5V. ESP32 GPIOs are not 5V tolerant, and retro pads run reliably at 3.3V logic levels.
 
 ---
 ## Button Mapping
