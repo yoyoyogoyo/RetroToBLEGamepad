@@ -51,7 +51,7 @@ Pin 9: Data1 / TR   -> GPIO 14
 +-----------------------------------+
  |  (1)  (2)  (3)  (4)  (5)  (6)  (7) |
 +-----------------------------------+
-[ Round Side ]            [ Flat Side ]
+[ Flat Side ]            [ Round Side ]
 
 Pin 1: +5V   -> ESP32 3V3 (NOT 5V!)
 Pin 2: Clock -> GPIO 19
@@ -64,9 +64,9 @@ Pin 7: GND   -> GND
 #### NES Controller Port (Front View / Console Socket)
 ```text
 +-----------------------+
- |  (1)  (2)  (3)  (4)   |
+ |       (5)  (6)  (7)   |
  |                       |  [ Flat Side ]
- |     (5)   (6)   (7)   |
+ |  (1)  (2)  (3)  (4)   |
  +-----------------------+
 
 Pin 1: GND   -> GND
